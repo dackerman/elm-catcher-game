@@ -3,6 +3,10 @@ module Game where
 import Math.Vector3 (..)
 import Math.Matrix4 (..)
 import Graphics.WebGL (..)
+import Mouse
+import Window
+
+import Model (gameState, Thing, GameState)
 
 -- Create a cube in which each vertex has a position and color
 
@@ -39,25 +43,42 @@ cube =
 -- Create the scene
 
 main : Signal Element
-main = webgl (700,700) <~ lift scene angle
+main = lift2 page gameState (webgl <~ squareWindowDimensions ~ lift3 scene angle Mouse.position gameState)
+
+page : GameState -> Element -> Element
+page state glScene = flow right [glScene, asText state]
+
+squareWindowDimensions : Signal (Int,Int)
+squareWindowDimensions = lift (\(x,y) -> let m = (min x y)
+                                         in (m,m)) Window.dimensions
 
 angle : Signal Float
-angle = foldp (\dt theta -> theta + dt / 5000) 0 (fps 120)
+angle = foldp (\dt theta -> theta + dt / 5000) 0 (fps 30)
 
-scene : Float -> [Entity]
-scene angle =
-    [ cubeEntity angle 0, cubeEntity (angle * 2) 3 ]
+scene : Float -> (Int,Int) -> GameState -> [Entity]
+scene angle mousePosition state =
+    [ cubeEntity angle (mouseTo3D mousePosition) ] ++ (map makeFallingCube state.objs)
 
-cubeEntity : Float -> Float -> Entity
+makeFallingCube : Thing -> Entity
+makeFallingCube thing = cubeEntity 30 (thing.x, thing.y)
+
+cubeEntity : Float -> (Float,Float) -> Entity
 cubeEntity angle position = entity vertexShader fragmentShader cube (uniforms angle position)
 
-uniforms : Float -> Float -> { rotation:Mat4, perspective:Mat4, camera:Mat4, shade:Float }
-uniforms t p =
+uniforms : Float -> (Float,Float) -> { rotation:Mat4, perspective:Mat4, camera:Mat4, shade:Float }
+uniforms t (x,y) =
     { rotation = mul (makeRotate (3*t) (vec3 0 1 0)) (makeRotate (2*t) (vec3 1 0 0))
     , perspective = makePerspective 45 1 0.01 100
-    , camera = makeLookAt (vec3 0 0 15) (vec3 p 0 1) (vec3 0 1 0)
+    , camera = makeLookAt (vec3 0 0 15) (vec3 x y 1) (vec3 0 1 0)
     , shade = 0.8
     }
+
+
+to3D : Int -> Float
+to3D c = (toFloat c - 300) / 50.0
+
+mouseTo3D : (Int,Int) -> (Float,Float)
+mouseTo3D (x,y) = (0 - to3D x, to3D y)
 
 -- Shaders
 
