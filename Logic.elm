@@ -1,4 +1,4 @@
-module Model (Thing, GameState, gameState) where
+module Logic (Thing, GameState, gameState) where
 
 import Time (Time, every, second, fps)
 import Random

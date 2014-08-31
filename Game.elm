@@ -1,3 +1,4 @@
+
 module Game where
 
 import Math.Vector3 (..)
@@ -6,39 +7,8 @@ import Graphics.WebGL (..)
 import Mouse
 import Window
 
-import Model (gameState, Thing, GameState)
-
--- Create a cube in which each vertex has a position and color
-
-type Vertex = { color:Vec3, position:Vec3 }
-
-face : Color -> Vec3 -> Vec3 -> Vec3 -> Vec3 -> [Triangle Vertex]
-face color a b c d =
-  let toV3 color =
-        let c = toRgb color
-        in  vec3 (toFloat c.red / 255) (toFloat c.green / 255) (toFloat c.blue / 255)
-      p = Vertex (toV3 color)
-  in
-      [ (p a, p b, p c), (p c, p d, p a) ]
-
-cube : [Triangle Vertex]
-cube =
-  let rft = vec3  1  1  1   -- right, front, top
-      lft = vec3 -1  1  1   -- left,  front, top
-      lbt = vec3 -1 -1  1
-      rbt = vec3  1 -1  1
-      rbb = vec3  1 -1 -1
-      rfb = vec3  1  1 -1
-      lfb = vec3 -1  1 -1
-      lbb = vec3 -1 -1 -1
-  in
-      concat [ face green  rft rfb rbb rbt   -- right
-             , face blue   rft rfb lfb lft   -- front
-             , face yellow rft lft lbt rbt   -- top
-             , face red    rfb lfb lbb rbb   -- bottom
-             , face purple lft lfb lbb lbt   -- left
-             , face orange rbt rbb lbb lbt   -- back
-             ]
+import Logic (gameState, Thing, GameState)
+import Models
 
 -- Create the scene
 
@@ -57,13 +27,18 @@ angle = foldp (\dt theta -> theta + dt / 5000) 0 (fps 30)
 
 scene : Float -> (Int,Int) -> GameState -> [Entity]
 scene angle mousePosition state =
-    [ cubeEntity angle (mouseTo3D mousePosition) ] ++ (map makeFallingCube state.objs)
+    [ makePlayerEntity angle mousePosition ] ++ (map makeFallingCube state.objs)
+
 
 makeFallingCube : Thing -> Entity
-makeFallingCube thing = cubeEntity 30 (thing.x, thing.y)
+makeFallingCube thing = cubeEntity 30 (thing.x, thing.y) Models.cat
 
-cubeEntity : Float -> (Float,Float) -> Entity
-cubeEntity angle position = entity vertexShader fragmentShader cube (uniforms angle position)
+makePlayerEntity : Float -> (Int,Int) -> Entity
+makePlayerEntity angle mousePosition = cubeEntity angle (mouseTo3D mousePosition) Models.bucket
+
+
+cubeEntity : Float -> (Float,Float) -> [Triangle Models.Vertex] -> Entity
+cubeEntity angle position model = entity vertexShader fragmentShader model (uniforms angle position)
 
 uniforms : Float -> (Float,Float) -> { rotation:Mat4, perspective:Mat4, camera:Mat4, shade:Float }
 uniforms t (x,y) =
