@@ -4,6 +4,7 @@ import Time (Time, every, second, fps)
 import Random
 import Mouse
 import Debug
+import Keyboard
 
 {- Constants -}
 framesPerSecondToUpdateGravity = 30
@@ -26,9 +27,9 @@ defaultPhysicsObject = { x = 0, y = 0, vx = 0, vy = 0 }
 {- Exported game state: this represents the state of the game at any moment in time -}
 gameState : Signal GameState
 gameState = foldp applyActions initialGameState (merges
-  [ createBlocksActions
+  [ lift appendNewThing (Random.float clickStream)
   , fpsActions
-  , playerActions
+  , lift updatePlayerPosition mousePositionStream
   ])
 
 applyActions : Action -> GameState -> GameState
@@ -36,14 +37,16 @@ applyActions action state = action state
 
 fpsActions : Signal Action
 fpsActions = foldl (lift2 (.)) doNothingAction
-  [ killActions
-  , gravityActions
+  [ lift killThingsThatAreTooFarDown timeStream
+  , lift applyGravityToBlocks timeStream
+  , lift killBlocksThatHitThePlayer timeStream
   ]
 
 
 {- Streams -}
 {- Updates every N times per second, good for simulation -}
 timeStream : Signal Time
+{-timeStream = lift (\{y} -> 0.01 * (toFloat y) * second) Keyboard.arrows-}
 timeStream = fps framesPerSecondToUpdateGravity
 
 {- Updates when the mouse is clicked -}
@@ -54,10 +57,11 @@ clickStream = Mouse.clicks
 mousePositionStream : Signal (Float,Float)
 mousePositionStream = lift mouseTo3D Mouse.position
 
+{-
+ - Actions that update the state of the simulation
+ -}
 
-playerActions : Signal Action
-playerActions = lift updatePlayerPosition mousePositionStream
-
+{- Actions affecting the player -}
 updatePlayerPosition : (Float,Float) -> GameState -> GameState
 updatePlayerPosition position state = { state | player <- (atPosition position)}
 
@@ -70,14 +74,7 @@ to3D c = (toFloat c - 300) / 50.0
 mouseTo3D : (Int,Int) -> (Float,Float)
 mouseTo3D (x,y) = (0 - to3D x, to3D y)
 
-{-
- - Actions that update the state of the simulation
- -}
-
 {- Apply gravity to all the created blocks N times per second -}
-gravityActions : Signal Action
-gravityActions = lift applyGravityToBlocks timeStream
-
 applyGravityToBlocks : Time -> GameState -> GameState
 applyGravityToBlocks t state = { state | objs <- map (applyGravity t) state.objs }
 
@@ -88,20 +85,30 @@ applyGravity ms thing = let t = ms / 1000.0
 
 
 {- For blocks that have fallen below the kill zone, remove them -}
-killActions : Signal Action
-killActions = lift killThingsThatAreTooFarDown timeStream
-
 killThingsThatAreTooFarDown : Time -> GameState -> GameState
-killThingsThatAreTooFarDown _ state = { state | objs <- filter (above -30) state.objs }
+killThingsThatAreTooFarDown _ state = killWhen (below -30) state 
 
-above : Float -> PhysicsObject -> Bool
-above threshold thing = -thing.y > threshold
+below : Float -> GameState -> PhysicsObject -> Bool
+below threshold _ block = -block.y < threshold
 
+{- Kill blocks that the player hits -}
+killBlocksThatHitThePlayer : Time -> GameState -> GameState
+killBlocksThatHitThePlayer _ state = killWhen blockHitsThePlayer state
+
+blockHitsThePlayer : GameState -> PhysicsObject -> Bool
+blockHitsThePlayer {player} {x,y} =
+    (withinHitbox player.y y) && (withinHitbox player.x x)
+
+withinHitbox : Float -> Float -> Bool
+withinHitbox a b = (a + 1 > b) && (a - 1 < b)
+
+killWhen : (GameState -> PhysicsObject -> Bool) -> GameState -> GameState
+killWhen predicate state = { state | objs <- filter (neg (predicate state)) state.objs } 
+
+neg : (a -> Bool) -> a -> Bool
+neg f a = not (f a)
 
 {- Create Blocks when the user Clicks their mouse anywhere on the page -}
-createBlocksActions : Signal Action
-createBlocksActions = lift appendNewThing (Random.float clickStream)
-
 appendNewThing : Float -> GameState -> GameState
 appendNewThing x state = { state | objs <- state.objs ++ [newRandomThing x] }
 
