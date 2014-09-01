@@ -10,7 +10,10 @@ import Keyboard
 framesPerSecondToUpdateGravity = 30
 
 {- Types -}
-type GameState = { objs : [PhysicsObject], player : PhysicsObject }
+type GameState = 
+  { objs : [PhysicsObject]
+  , player : PhysicsObject
+  , score : Int }
 type PhysicsObject = { x : Float, y : Float, vx : Float, vy : Float }
 
 type Action = (GameState -> GameState)
@@ -19,7 +22,7 @@ doNothingAction : Signal Action
 doNothingAction = constant id
 
 initialGameState : GameState
-initialGameState = { objs = [], player = defaultPhysicsObject }
+initialGameState = { objs = [], player = defaultPhysicsObject , score = 0}
 
 defaultPhysicsObject : PhysicsObject
 defaultPhysicsObject = { x = 0, y = 0, vx = 0, vy = 0 }
@@ -86,14 +89,15 @@ applyGravity ms thing = let t = ms / 1000.0
 
 {- For blocks that have fallen below the kill zone, remove them -}
 killThingsThatAreTooFarDown : Time -> GameState -> GameState
-killThingsThatAreTooFarDown _ state = killWhen (below -30) state 
+killThingsThatAreTooFarDown _ state = state
+  |> (changeScoreWhen (below -30) -5)
+  |> (killWhen (below -30))
 
-below : Float -> GameState -> PhysicsObject -> Bool
-below threshold _ block = -block.y < threshold
-
-{- Kill blocks that the player hits -}
+{- Remove blocks that the player hits -}
 killBlocksThatHitThePlayer : Time -> GameState -> GameState
-killBlocksThatHitThePlayer _ state = killWhen blockHitsThePlayer state
+killBlocksThatHitThePlayer _ state = state
+  |> (changeScoreWhen blockHitsThePlayer 10)
+  |> (killWhen blockHitsThePlayer)
 
 blockHitsThePlayer : GameState -> PhysicsObject -> Bool
 blockHitsThePlayer {player} {x,y} =
@@ -102,12 +106,6 @@ blockHitsThePlayer {player} {x,y} =
 withinHitbox : Float -> Float -> Bool
 withinHitbox a b = (a + 1 > b) && (a - 1 < b)
 
-killWhen : (GameState -> PhysicsObject -> Bool) -> GameState -> GameState
-killWhen predicate state = { state | objs <- filter (neg (predicate state)) state.objs } 
-
-neg : (a -> Bool) -> a -> Bool
-neg f a = not (f a)
-
 {- Create Blocks when the user Clicks their mouse anywhere on the page -}
 appendNewThing : Float -> GameState -> GameState
 appendNewThing x state = { state | objs <- state.objs ++ [newRandomThing x] }
@@ -115,3 +113,18 @@ appendNewThing x state = { state | objs <- state.objs ++ [newRandomThing x] }
 newRandomThing : Float -> PhysicsObject
 newRandomThing x = { x = x * 10 - 5, y = -5, vx = 0, vy = 0 }
 
+{- Helper functions for manipulating game state -}
+changeScoreWhen : (GameState -> PhysicsObject -> Bool) -> Int -> GameState -> GameState
+changeScoreWhen predicate amount state = { state
+  | score <- state.score + (amount * (length (filter (predicate state) state.objs))) }
+
+killWhen : (GameState -> PhysicsObject -> Bool) -> GameState -> GameState
+killWhen predicate state = { state
+  | objs <- filter (neg (predicate state)) state.objs } 
+
+below : Float -> GameState -> PhysicsObject -> Bool
+below threshold _ block = -block.y < threshold
+
+
+neg : (a -> Bool) -> a -> Bool
+neg f a = not (f a)

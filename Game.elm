@@ -6,6 +6,7 @@ import Math.Matrix4 (..)
 import Graphics.WebGL (..)
 import Mouse
 import Window
+import Text (leftAligned, monospace, toText, asText)
 
 import Logic (gameState, PhysicsObject, GameState)
 import Models
@@ -16,7 +17,10 @@ main : Signal Element
 main = lift2 page gameState (webgl <~ squareWindowDimensions ~ lift scene gameState)
 
 page : GameState -> Element -> Element
-page state glScene = flow right [glScene, asText state]
+page state glScene = flow down
+  [ leftAligned <| monospace <| toText <| "Score: " ++ (show state.score)
+  , flow right [glScene, asText state]
+  ]
 
 squareWindowDimensions : Signal (Int,Int)
 squareWindowDimensions = lift (\(x,y) -> let m = (min x y)
