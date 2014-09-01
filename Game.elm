@@ -37,14 +37,14 @@ type Model = { position: Vec3, rotation: Mat4, mesh: [Triangle Models.Vertex]}
 
 makeFallingCube : PhysicsObject -> Entity
 makeFallingCube physics = makeEntity
-  { position = vec3 physics.x physics.y 1
-  , rotation = makeRotate 13 (vec3 1 1 1)
+  { position = physics.pos
+  , rotation = physics.rot
   , mesh = Models.cat }
 
 makePlayerEntity : PhysicsObject -> Entity
 makePlayerEntity physics = makeEntity
-  { position = vec3 physics.x physics.y 1
-  , rotation = makeRotate 15 (vec3 1 0 0)
+  { position = physics.pos
+  , rotation = physics.rot
   , mesh = Models.bucket }
 
 
