@@ -13,7 +13,7 @@ import Models
 -- Create the scene
 
 main : Signal Element
-main = lift2 page gameState (webgl <~ squareWindowDimensions ~ lift3 scene angle Mouse.position gameState)
+main = lift2 page gameState (webgl <~ squareWindowDimensions ~ lift scene gameState)
 
 page : GameState -> Element -> Element
 page state glScene = flow right [glScene, asText state]
@@ -25,21 +25,21 @@ squareWindowDimensions = lift (\(x,y) -> let m = (min x y)
 angle : Signal Float
 angle = foldp (\dt theta -> theta + dt / 5000) 0 (fps 30)
 
-scene : Float -> (Int,Int) -> GameState -> [Entity]
-scene angle mousePosition state =
-    [ makePlayerEntity angle mousePosition ] ++ (map makeFallingCube state.objs)
+scene : GameState -> [Entity]
+scene state =
+    [ makePlayerEntity state.player ] ++ (map makeFallingCube state.objs)
 
 type Model = { position: Vec3, rotation: Mat4, mesh: [Triangle Models.Vertex]}
 
 makeFallingCube : PhysicsObject -> Entity
-makeFallingCube thing = makeEntity
-  { position = vec3 thing.x thing.y 1
-  , rotation = identity
+makeFallingCube physics = makeEntity
+  { position = vec3 physics.x physics.y 1
+  , rotation = makeRotate 13 (vec3 1 1 1)
   , mesh = Models.cat }
 
-makePlayerEntity : Float -> (Int,Int) -> Entity
-makePlayerEntity angle mousePosition = makeEntity
-  { position = (mouseTo3D mousePosition)
+makePlayerEntity : PhysicsObject -> Entity
+makePlayerEntity physics = makeEntity
+  { position = vec3 physics.x physics.y 1
   , rotation = makeRotate 15 (vec3 1 0 0)
   , mesh = Models.bucket }
 
@@ -55,12 +55,6 @@ uniforms position rotation =
     , shade = 0.8
     }
 
-
-to3D : Int -> Float
-to3D c = (toFloat c - 300) / 50.0
-
-mouseTo3D : (Int,Int) -> Vec3
-mouseTo3D (x,y) = vec3 (0 - to3D x) (to3D y) 1
 
 -- Shaders
 

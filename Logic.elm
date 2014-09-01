@@ -9,7 +9,7 @@ import Debug
 framesPerSecondToUpdateGravity = 30
 
 {- Types -}
-type GameState = { objs : [PhysicsObject]}
+type GameState = { objs : [PhysicsObject], player : PhysicsObject }
 type PhysicsObject = { x : Float, y : Float, vx : Float, vy : Float }
 
 type Action = (GameState -> GameState)
@@ -18,17 +18,27 @@ doNothingAction : Signal Action
 doNothingAction = constant id
 
 initialGameState : GameState
-initialGameState = { objs = [] }
+initialGameState = { objs = [], player = defaultPhysicsObject }
+
+defaultPhysicsObject : PhysicsObject
+defaultPhysicsObject = { x = 0, y = 0, vx = 0, vy = 0 }
 
 {- Exported game state: this represents the state of the game at any moment in time -}
 gameState : Signal GameState
-gameState = foldp applyActions initialGameState (merge createBlocksActions fpsActions)
+gameState = foldp applyActions initialGameState (merges
+  [ createBlocksActions
+  , fpsActions
+  , playerActions
+  ])
 
 applyActions : Action -> GameState -> GameState
 applyActions action state = action state
 
 fpsActions : Signal Action
-fpsActions = foldl (lift2 (.)) doNothingAction [killActions, gravityActions]
+fpsActions = foldl (lift2 (.)) doNothingAction
+  [ killActions
+  , gravityActions
+  ]
 
 
 {- Streams -}
@@ -41,11 +51,24 @@ clickStream : Signal ()
 clickStream = Mouse.clicks
 
 {- Updates when the mouse is moved -}
-mousePositionStream : Signal (Int,Int)
-mousePositionStream = Mouse.position
+mousePositionStream : Signal (Float,Float)
+mousePositionStream = lift mouseTo3D Mouse.position
 
 
+playerActions : Signal Action
+playerActions = lift updatePlayerPosition mousePositionStream
 
+updatePlayerPosition : (Float,Float) -> GameState -> GameState
+updatePlayerPosition position state = { state | player <- (atPosition position)}
+
+atPosition : (Float,Float) -> PhysicsObject
+atPosition (x,y) = { x = x, y = y, vx = 0, vy = 0 }
+
+to3D : Int -> Float
+to3D c = (toFloat c - 300) / 50.0
+
+mouseTo3D : (Int,Int) -> (Float,Float)
+mouseTo3D (x,y) = (0 - to3D x, to3D y)
 
 {-
  - Actions that update the state of the simulation
