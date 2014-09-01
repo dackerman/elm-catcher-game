@@ -29,22 +29,23 @@ scene : Float -> (Int,Int) -> GameState -> [Entity]
 scene angle mousePosition state =
     [ makePlayerEntity angle mousePosition ] ++ (map makeFallingCube state.objs)
 
+type Model = { position: Vec3, rotation: Mat4, mesh: [Triangle Models.Vertex]}
 
 makeFallingCube : Thing -> Entity
-makeFallingCube thing = cubeEntity 30 (thing.x, thing.y) Models.cat
+makeFallingCube thing = makeEntity { position = vec3 thing.x thing.y 1, rotation = identity, mesh = Models.cat }
 
 makePlayerEntity : Float -> (Int,Int) -> Entity
-makePlayerEntity angle mousePosition = cubeEntity angle (mouseTo3D mousePosition) Models.bucket
+makePlayerEntity angle mousePosition = makeEntity { position = (mouseTo3D mousePosition), rotation = identity, mesh = Models.bucket }
 
 
-cubeEntity : Float -> (Float,Float) -> [Triangle Models.Vertex] -> Entity
-cubeEntity angle position model = entity vertexShader fragmentShader model (uniforms angle position)
+makeEntity : Model -> Entity
+makeEntity model = entity vertexShader fragmentShader model.mesh (uniforms model.position model.rotation)
 
-uniforms : Float -> (Float,Float) -> { rotation:Mat4, perspective:Mat4, camera:Mat4, shade:Float }
-uniforms t (x,y) =
-    { rotation = mul (makeRotate (3*t) (vec3 0 1 0)) (makeRotate (2*t) (vec3 1 0 0))
+uniforms : Vec3 -> Mat4 -> { rotation:Mat4, perspective:Mat4, camera:Mat4, shade:Float }
+uniforms position rotation =
+    { rotation = rotation
     , perspective = makePerspective 45 1 0.01 100
-    , camera = makeLookAt (vec3 0 0 15) (vec3 x y 1) (vec3 0 1 0)
+    , camera = makeLookAt (vec3 0 0 15) position (vec3 0 1 0)
     , shade = 0.8
     }
 
@@ -52,8 +53,8 @@ uniforms t (x,y) =
 to3D : Int -> Float
 to3D c = (toFloat c - 300) / 50.0
 
-mouseTo3D : (Int,Int) -> (Float,Float)
-mouseTo3D (x,y) = (0 - to3D x, to3D y)
+mouseTo3D : (Int,Int) -> Vec3
+mouseTo3D (x,y) = vec3 (0 - to3D x) (to3D y) 1
 
 -- Shaders
 
