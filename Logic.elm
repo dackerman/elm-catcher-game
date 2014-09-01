@@ -1,4 +1,4 @@
-module Logic (Thing, GameState, gameState) where
+module Logic (PhysicsObject, GameState, gameState) where
 
 import Time (Time, every, second, fps)
 import Random
@@ -9,8 +9,8 @@ import Debug
 framesPerSecondToUpdateGravity = 30
 
 {- Types -}
-type GameState = { objs : [Thing] }
-type Thing = { x : Float, y : Float, vx : Float, vy : Float }
+type GameState = { objs : [PhysicsObject]}
+type PhysicsObject = { x : Float, y : Float, vx : Float, vy : Float }
 
 type Action = (GameState -> GameState)
 
@@ -36,9 +36,15 @@ fpsActions = foldl (lift2 (.)) doNothingAction [killActions, gravityActions]
 timeStream : Signal Time
 timeStream = fps framesPerSecondToUpdateGravity
 
-{- Updatse when the mouse is clicked -}
+{- Updates when the mouse is clicked -}
 clickStream : Signal ()
 clickStream = Mouse.clicks
+
+{- Updates when the mouse is moved -}
+mousePositionStream : Signal (Int,Int)
+mousePositionStream = Mouse.position
+
+
 
 
 {-
@@ -52,7 +58,7 @@ gravityActions = lift applyGravityToBlocks timeStream
 applyGravityToBlocks : Time -> GameState -> GameState
 applyGravityToBlocks t state = { state | objs <- map (applyGravity t) state.objs }
 
-applyGravity : Time -> Thing -> Thing
+applyGravity : Time -> PhysicsObject -> PhysicsObject
 applyGravity ms thing = let t = ms / 1000.0
                         in { thing | y <- thing.y + thing.vy + t,
                                      vy <- thing.vy + t }
@@ -65,7 +71,7 @@ killActions = lift killThingsThatAreTooFarDown timeStream
 killThingsThatAreTooFarDown : Time -> GameState -> GameState
 killThingsThatAreTooFarDown _ state = { state | objs <- filter (above -30) state.objs }
 
-above : Float -> Thing -> Bool
+above : Float -> PhysicsObject -> Bool
 above threshold thing = -thing.y > threshold
 
 
@@ -76,6 +82,6 @@ createBlocksActions = lift appendNewThing (Random.float clickStream)
 appendNewThing : Float -> GameState -> GameState
 appendNewThing x state = { state | objs <- state.objs ++ [newRandomThing x] }
 
-newRandomThing : Float -> Thing
+newRandomThing : Float -> PhysicsObject
 newRandomThing x = { x = x * 10 - 5, y = -5, vx = 0, vy = 0 }
 

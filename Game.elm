@@ -7,7 +7,7 @@ import Graphics.WebGL (..)
 import Mouse
 import Window
 
-import Logic (gameState, Thing, GameState)
+import Logic (gameState, PhysicsObject, GameState)
 import Models
 
 -- Create the scene
@@ -31,11 +31,17 @@ scene angle mousePosition state =
 
 type Model = { position: Vec3, rotation: Mat4, mesh: [Triangle Models.Vertex]}
 
-makeFallingCube : Thing -> Entity
-makeFallingCube thing = makeEntity { position = vec3 thing.x thing.y 1, rotation = identity, mesh = Models.cat }
+makeFallingCube : PhysicsObject -> Entity
+makeFallingCube thing = makeEntity
+  { position = vec3 thing.x thing.y 1
+  , rotation = identity
+  , mesh = Models.cat }
 
 makePlayerEntity : Float -> (Int,Int) -> Entity
-makePlayerEntity angle mousePosition = makeEntity { position = (mouseTo3D mousePosition), rotation = identity, mesh = Models.bucket }
+makePlayerEntity angle mousePosition = makeEntity
+  { position = (mouseTo3D mousePosition)
+  , rotation = makeRotate 15 (vec3 1 0 0)
+  , mesh = Models.bucket }
 
 
 makeEntity : Model -> Entity
