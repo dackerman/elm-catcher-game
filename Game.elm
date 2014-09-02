@@ -19,7 +19,7 @@ main = lift2 page gameState (webgl <~ squareWindowDimensions ~ lift scene gameSt
 page : GameState -> Element -> Element
 page state glScene = flow down
   [ leftAligned <| monospace <| toText <| "Score: " ++ (show state.score)
-  , flow right [glScene, asText state]
+  , glScene
   ]
 
 squareWindowDimensions : Signal (Int,Int)
@@ -35,13 +35,13 @@ scene state =
 
 type Model = { position: Vec3, rotation: Mat4, mesh: [Triangle Models.Vertex]}
 
-makeFallingCube : PhysicsObject -> Entity
+makeFallingCube : PhysicsObject a -> Entity
 makeFallingCube physics = makeEntity
   { position = physics.pos
   , rotation = physics.rot
   , mesh = Models.cat }
 
-makePlayerEntity : PhysicsObject -> Entity
+makePlayerEntity : PhysicsObject a -> Entity
 makePlayerEntity physics = makeEntity
   { position = physics.pos
   , rotation = physics.rot
