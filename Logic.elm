@@ -6,7 +6,7 @@ import Mouse
 import Debug
 import Keyboard
 import Math.Vector3 (Vec3, vec3, getX, getY, setX, setY)
-import Math.Matrix4 (Mat4, identity, makeRotate)
+import Math.Matrix4 (Mat4, identity, makeRotate, rotate)
 
 {- Constants -}
 framesPerSecondToUpdateGravity = 30
@@ -40,8 +40,8 @@ vzero = vec3 0 0 0
 {- Exported game state: this represents the state of the game at any moment in time -}
 gameState : Signal GameState
 gameState = foldp applyActions initialGameState (merges
-  [ lift2 appendNewThing (Random.float (fps 3)) (sampleOn (fps 3) timeStream)
-  , lift applyGravityToBlocks frameTimeStream
+  [ lift2 appendNewThing (Random.float (fps 5)) (sampleOn (fps 5) timeStream)
+  , lift applyPhysicsToBlocks frameTimeStream
   , allInStream
     [ killThingsThatAreTooFarDown
     , killBlocksThatHitThePlayer
@@ -88,8 +88,8 @@ mouseTo3D : (Int,Int) -> (Float,Float)
 mouseTo3D (x,y) = (0 - to3D x, to3D y)
 
 {- Apply gravity to all the created blocks N times per second -}
-applyGravityToBlocks : Time -> GameState -> GameState
-applyGravityToBlocks t state = { state | objs <- map (applyGravity t) state.objs }
+applyPhysicsToBlocks : Time -> GameState -> GameState
+applyPhysicsToBlocks t state = { state | objs <- map ((applyGravity t) . (applyRotation t)) state.objs }
 
 applyGravity : Time -> PhysicsObject a -> PhysicsObject a
 applyGravity ms obj = let t = ms / 1000.0
@@ -100,6 +100,8 @@ applyGravity ms obj = let t = ms / 1000.0
                         in { obj | pos <- setY (y + vy + t) pos,
                                    vel <- setY (vy + t) vel }
 
+applyRotation : Time -> PhysicsObject a -> PhysicsObject a
+applyRotation ms obj = { obj | rot <- rotate (ms/400) (vec3 1 1 0) obj.rot }
 
 {- For blocks that have fallen below the kill zone, remove them -}
 killThingsThatAreTooFarDown : Time -> GameState -> GameState
@@ -141,7 +143,7 @@ newRandomThing : Float -> Time -> PhysicsObject (BornOn {})
 newRandomThing x time =
   { pos = vec3 (x * 10 - 5) (-5) 1
   , vel = vzero
-  , rot = makeRotate x (vec3 0 1 0)
+  , rot = makeRotate x (vec3 1 1 0)
   , bornOn = time }
 
 {- Helper functions for manipulating game state -}

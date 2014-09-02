@@ -6,7 +6,7 @@ import Math.Matrix4 (..)
 import Graphics.WebGL (..)
 import Mouse
 import Window
-import Text (leftAligned, monospace, toText, asText)
+import Text (leftAligned, monospace, toText, asText, plainText)
 
 import Logic (gameState, PhysicsObject, GameState)
 import Models
@@ -14,13 +14,18 @@ import Models
 -- Create the scene
 
 main : Signal Element
-main = lift2 page gameState (webgl <~ squareWindowDimensions ~ lift scene gameState)
+main = lift3 page gameState accumScores (webgl <~ squareWindowDimensions ~ lift scene gameState)
 
-page : GameState -> Element -> Element
-page state glScene = flow down
+page : GameState -> [Int] -> Element -> Element
+page state scores glScene = flow down
   [ leftAligned <| monospace <| toText <| "Score: " ++ (show state.score)
-  , glScene
+  , flow right [glScene{-, flow down (map (plainText . show) scores)-}]
   ]
+
+
+accumScores : Signal [Int]
+accumScores = foldp (\a b -> b ++ [a]) [] (dropRepeats (lift .score gameState))
+
 
 squareWindowDimensions : Signal (Int,Int)
 squareWindowDimensions = lift (\(x,y) -> let m = (min x y)
