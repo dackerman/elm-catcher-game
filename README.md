@@ -8,6 +8,6 @@ I'll be adding more interactive functionality as I learn more about Elm.
 To run this demo, [install elm](https://github.com/elm-lang/elm-platform/blob/master/README.md#elm-platform), then run these two commands:
 
     elm-get install
-    elm-server
+    elm-reactor
 
-Then go to [http://localhost:8000/Game.elm](http://localhost:8000/Game.elm) to a spinning cube. Click anywhere on the page to see more cubes fall from the sky! On the right is a view of the current state of the game at any point in time, and you'll see as blocks spawn, then append to the state, and then go away after falling off the screen.
+Then go to [http://localhost:8000/Game.elm](http://localhost:8000/Game.elm) to see falling spinning cubes.  Try to move your cylinder under the falling cubes to catch them and make your score go up.  The faster you can catch the cubes after they spawn, the more points you get.  If you miss a cube, you lose points.
