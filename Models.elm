@@ -1,6 +1,7 @@
 module Models where
 
-import Math.Vector3 (Vec3, vec3, add, scale, getX, getY, getZ)
+import Math.Vector3 (Vec3, vec3, add, getX, getY, getZ, scale)
+import Math.Vector3
 import Math.Matrix4
 import Graphics.WebGL (Triangle, mapTriangle)
 import Http
@@ -89,7 +90,7 @@ move moveVector points = map (add moveVector) points
 
 pointCircle : Float -> Int -> [Vec3]
 pointCircle radius segments = toList (initialize segments
-  (\i -> scale radius (makePointOnCircle (toFloat i / toFloat segments))))
+  (\i -> Math.Vector3.scale radius (makePointOnCircle (toFloat i / toFloat segments))))
 
 makePointOnCircle : Float -> Vec3
 makePointOnCircle p = vec3 (cos (turns p)) (sin (turns p)) 0

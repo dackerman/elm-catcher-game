@@ -1,12 +1,13 @@
 module Logic (PhysicsObject, GameState, gameState) where
 
 import Time (Time, every, second, fps)
-import Random
+import Random (float)
 import Mouse
 import Debug
 import Keyboard
 import Math.Vector3 (Vec3, vec3, getX, getY, setX, setY)
-import Math.Matrix4 (Mat4, identity, makeRotate, rotate)
+import Math.Matrix4 (Mat4, makeRotate, rotate)
+import Math.Matrix4
 
 {- Constants -}
 framesPerSecondToUpdateGravity = 30
@@ -22,7 +23,7 @@ type BornOn a = { a | bornOn : Time }
 type Action = (GameState -> GameState)
 
 doNothingAction : Signal Action
-doNothingAction = constant id
+doNothingAction = constant identity
 
 initialGameState : GameState
 initialGameState =
@@ -31,7 +32,7 @@ initialGameState =
   , score = 0}
 
 defaultPhysicsObject : PhysicsObject {}
-defaultPhysicsObject = { pos = vzero, vel = vzero, rot = identity }
+defaultPhysicsObject = { pos = vzero, vel = vzero, rot = Math.Matrix4.identity }
 
 vzero = vec3 0 0 0
 
@@ -40,7 +41,7 @@ vzero = vec3 0 0 0
 {- Exported game state: this represents the state of the game at any moment in time -}
 gameState : Signal GameState
 gameState = foldp applyActions initialGameState (merges
-  [ lift2 appendNewThing (Random.float (fps 5)) (sampleOn (fps 5) timeStream)
+  [ lift2 appendNewThing (float (fps 5)) (sampleOn (fps 5) timeStream)
   , lift applyPhysicsToBlocks frameTimeStream
   , allInStream
     [ killThingsThatAreTooFarDown
@@ -53,7 +54,7 @@ applyActions : Action -> GameState -> GameState
 applyActions action state = action state
 
 allInStream : [(a -> Action)] -> (Signal a) -> (Signal Action)
-allInStream actions stream = foldl (lift2 (.)) doNothingAction
+allInStream actions stream = foldl (lift2 (<<)) doNothingAction
   (map (\a -> lift a stream) actions)
 
 frameTimeStream : Signal Time
@@ -89,7 +90,7 @@ mouseTo3D (x,y) = (0 - to3D x, to3D y)
 
 {- Apply gravity to all the created blocks N times per second -}
 applyPhysicsToBlocks : Time -> GameState -> GameState
-applyPhysicsToBlocks t state = { state | objs <- map ((applyGravity t) . (applyRotation t)) state.objs }
+applyPhysicsToBlocks t state = { state | objs <- map ((applyGravity t) << (applyRotation t)) state.objs }
 
 applyGravity : Time -> PhysicsObject a -> PhysicsObject a
 applyGravity ms obj = let t = ms / 1000.0
@@ -101,7 +102,7 @@ applyGravity ms obj = let t = ms / 1000.0
                                    vel <- setY (vy + t) vel }
 
 applyRotation : Time -> PhysicsObject a -> PhysicsObject a
-applyRotation ms obj = { obj | rot <- rotate (ms/400) (vec3 1 1 0) obj.rot }
+applyRotation ms obj = { obj | rot <- Math.Matrix4.rotate (ms/400) (vec3 1 1 0) obj.rot }
 
 {- For blocks that have fallen below the kill zone, remove them -}
 killThingsThatAreTooFarDown : Time -> GameState -> GameState

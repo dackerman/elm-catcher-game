@@ -4,10 +4,10 @@
     "description": "A WebGL-based catch-the-things game",
     "license": "BSD3",
     "exposed-modules": [],
-    "elm-version": "0.12.3",
+    "elm-version": "0.13",
     "dependencies": {
         "johnpmayer/elm-webgl": "0.1",
-        "dackerman/elm-linear-algebra": "1.0.1"
+        "johnpmayer/elm-linear-algebra": "1.0.1"
     },
     "repository": "https://github.com/dackerman/elm-catcher-game.git"
 }
